@@ -1,0 +1,31 @@
+{
+	"rootDir":"/home/howie/INCOMING/test",
+	"monitors": [
+	{
+		"baseDir":"ebooks",
+		"fileRegex":"ebook_*.tar",
+		"conversions": [
+			{
+				"inputExtension":".epub",
+				"outputExtension":".mobi",
+				"script":"ebook-convert",
+				"removeOriginal":"true"
+			}
+		],
+		"archiveDir":"archive"
+	},
+	{
+		"baseDir":"music",
+		"fileRegex":"mp3_*.tar",
+		"conversions": [
+			{
+				"inputExtension":".flac",
+				"outputExtension":".mp3",
+				"script":"mkmp3.sh",
+				"removeOriginal":"true"
+			}
+		],
+		"archiveDir":"ebooks/archive"
+	}
+]
+}
