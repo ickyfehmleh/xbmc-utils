@@ -23,13 +23,6 @@ PID_FILE="$HOME/.tvcron/pid"
 SLEEP_TIME=40
 PRCP="tvcp"
 
-def removeUnnecessaryFiles(baseDir):
-	for ext in ['.nfo', '.nzb', '.html', '.url']:
-		p = os.path.join(baseDir, '*' + ext)
-		for f in glob.glob(p):
-			os.remove(f)
-			logstr('Removed [%s]' % f)
-
 def sendUpdateToSickbeard(url):
 	response = None
 	try:
@@ -52,6 +45,9 @@ def updateSickbeard():
 	url = urlTemplate.substitute(args)
 	sendUpdateToSickbeard(url)
 
+	# sleep for a few seconds
+	time.sleep(5)
+
 def logstr(msg):
 	t = time.strftime( '%Y-%m-%d @ %I:%M:%S %P' )
 	print '[%s]: %s' % (t, msg)
@@ -64,14 +60,13 @@ def determineFilename(dir):
 		for root, dirs, files in os.walk(dir):
 			for file in files:
 				fn, ext = os.path.splitext(file.lower())
+				absfn = os.path.join(root,file)
 				
 				if ext in ['.avi', '.mkv', '.mp4', '.mpg', '.m4v']:
-					foundFile = os.path.join(root,file)
-				# remove unnecessary files
-				elsif ext in ['.html','.url','.nfo','.nzb']:
-					absfn = os.path.join(root, file)
-					logstr('Removing [%s]' % absfn )
-					os.remove( absfn )
+					foundFile = absfn
+				elif ext in ['.html', '.nfo', '.nzb', '.url']:
+					os.remove(absfn)
+					logstr('Removed [%s]' % absfn)
 	return foundFile
 
 def handleShowCopy(rootDir,fn):
@@ -99,16 +94,15 @@ def handleShowCopy(rootDir,fn):
 	#os.system(cmd)
 	try:
 		shutil.move(inpDirFile, outpDirFile)
-	except OSError oe:
+	except OSError:
 		pass
 
-	# wipe unnecessary files
-	removeUnnecessaryFiles(rootDir)
-
-	# rename from tv_what to just what
-	nonTvDir = rootDir[3:]
-	logstr( 'Renaming [%s] to [%s]' % (rootDir, nonTvDir) )
-	os.rename(rootDir, nonTvDir)
+	# only proceed if we still exist; if we're a file, we're already moved
+	if os.path.exists(rootDir):
+		# rename from tv_what to just what
+		nonTvDir = rootDir[3:]
+		logstr( 'Renaming [%s] to [%s]' % (rootDir, nonTvDir) )
+		os.rename(rootDir, nonTvDir)
 
 	# tell sickbeard to update?
 	logstr( "Telling SickBeard about the new file..." )
@@ -124,7 +118,7 @@ while cont:
 
 			# look at $TV_ROOT_DIR/tv_*
 			for file in fileList:
-				logstr( 'Found directory [%s]' % file)
+				logstr( 'Found [%s]' % file)
 				# sleep for a second because postfetch.sh may be moving a file over
 				time.sleep(1)
 
