@@ -73,9 +73,12 @@ def handleShowCopy(rootDir,fn):
 	## copy file as dirName + . + fileExt because groups suck at naming
 	copyFile = None
 
-	hackedFileExt = os.path.splitext(fn)[1]
-	hackedFileName = rootDir
-	copyFile = hackedFileName + hackedFileExt
+	if os.path.isdir(fn):
+		hackedFileExt = os.path.splitext(fn)[1]
+		hackedFileName = rootDir
+		copyFile = hackedFileName + hackedFileExt
+	else:
+		copyFile = os.path.basename(fn)
 
 	# eliminate 'tv_' since we havent been processed yet
 	copyFile = re.sub('^tv_', '', copyFile)
@@ -98,7 +101,7 @@ def handleShowCopy(rootDir,fn):
 		pass
 
 	# only proceed if we still exist; if we're a file, we're already moved
-	if os.path.exists(rootDir):
+	if os.path.exists(inpDirFile):
 		# rename from tv_what to just what
 		nonTvDir = rootDir[3:]
 		logstr( 'Renaming [%s] to [%s]' % (rootDir, nonTvDir) )
