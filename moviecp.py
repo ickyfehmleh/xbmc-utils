@@ -19,13 +19,19 @@ import urlparse
 import getopt
 import json
 import time
+from hashlib import md5 as md5
 from subprocess import call
 
 MOVIE_ROOT="/shared/Movies"
 #MOVIE_ROOT="/home/howie/tmp/shared.movies"
 XBMC_HOST='192.168.1.53'
 XBMC_PORT='8080'
-HTTP_PROXY='http://localhost:3128'
+HTTP_PROXY='http://192.168.1.53:3128'
+
+# make a .md5 file?
+MAKE_CHECKSUM_FILE=False
+#READ_BYTES=4096
+READ_BYTES=8192
 
 def getImdbInstance():
 	i = imdb.IMDb()
@@ -35,11 +41,18 @@ def getImdbInstance():
 def copyMovie(localFile, outputPath,local=True):
 
 	if local:
-		shutil.copy(localFile,outputPath)
+		# figure out if we can use hardlinks or if we need to copy
+		fileStat = os.stat(localFile)
+		outputStat = os.stat(os.path.dirname(outputPath))
+
+		# same device; hardlink it
+		if fileStat.st_dev == outputStat.st_dev:
+			os.link(localFile,outputPath)
+		else: # different device; do a copy
+			shutil.copy(localFile,outputPath)		
 	else:
 		p = call("minicp \"%s\" %s" % (localFile, outputPath), shell=True)
 
-## FIXME: change to json api
 def updateXbmc(movieDir):
 	updateCmd = dict()
 	updateCmd['id'] = '1'
@@ -223,6 +236,18 @@ def mktag(tag,value):
 	s = '<%s>%s</%s>\n' % (tag, str(value), tag)
 	return s
 
+def calcChecksum(fn):
+	m = md5()
+	f = open(os.path.abspath(fn))
+	buf = None
+
+	while '' != buf:
+		buf = f.read(READ_BYTES)
+		m.update(buf)
+	f.close()
+
+	return m.hexdigest()
+
 #####
 urls = []
 url = None
@@ -338,6 +363,14 @@ for arg in args:
 	
 		if not os.path.exists( outpNfoFile ):
 			createNfoFile( outpNfoPath, movie, movieUrl )
+
+		# make md5 file
+		if MAKE_CHECKSUM_FILE:
+			chksumFile = os.path.join( MOVIE_ROOT, movieDir, movieDir + '.md5' )
+			if not os.path.exists( chksumFile ):
+				#chksum = calcChecksum( WHAT FILE?! )
+				f = open(chksumFile, 'w')
+				f.close()
 
 		# fetch thumbnail
 		imgPath = os.path.join( MOVIE_ROOT, movieDir, 'folder.jpg' )
